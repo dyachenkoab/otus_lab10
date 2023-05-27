@@ -7,7 +7,9 @@ project(async VERSION ${PROJECT_VERSION} LANGUAGES CXX)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+find_package(Boost COMPONENTS system REQUIRED)
 find_package(Threads REQUIRED)
+include_directories(${Boost_INCLUDE_DIR})
 
 add_library(${PROJECT_NAME} SHARED)
 target_sources(${PROJECT_NAME}
@@ -57,6 +59,35 @@ target_sources(test
         main.cpp
 )
 target_link_libraries(test PRIVATE async)
+
+
+add_executable(asio_async_server
+    src/asio_async_server.cpp
+    src/asio_async_server.h
+)
+
+set_target_properties(asio_async_server PROPERTIES
+        CXX_STANDARD 14
+        CXX_STANDARD_REQUIRED ON
+)
+
+target_link_libraries(asio_async_server PUBLIC
+        ${Boost_LIBRARIES}
+        Threads::Threads
+        async
+)
+
+add_executable(asio_client src/asio_client.cpp)
+
+set_target_properties(asio_client PROPERTIES
+        CXX_STANDARD 14
+        CXX_STANDARD_REQUIRED ON
+        )
+
+target_link_libraries(asio_client PUBLIC
+        ${Boost_LIBRARIES}
+        Threads::Threads
+        )
 #--------------------------------
 
 
