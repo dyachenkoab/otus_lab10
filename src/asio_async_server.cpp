@@ -1,17 +1,17 @@
 #include "asio_async_server.h"
 
-std::mutex session::mutex_;
+//std::mutex session::mutex_;
 bool session::isValid(const std::string &command)
 {
     if (command == "{") {
         if (++m_counter == 1) {
-            nested = true;
+            m_nested = true;
             return false;
         }
     }
     if (command == "}") {
         if (--m_counter == 0) {
-            nested = false;
+            m_nested = false;
             return false;
         }
     }
@@ -32,32 +32,61 @@ void session::start()
 
 void session::do_read()
 {
-    socket_.async_read_some(boost::asio::buffer(data_, max_length), [this](boost::system::error_code ec,
-                                           std::size_t length) {
-        if ((boost::asio::error::eof == ec) || (boost::asio::error::connection_reset == ec)) {
-            if (m_server) {
-                m_server->disconnect(id);
-            }
-        }
-        if (!ec) {
-            std::string command { data_, length };
-            if (isValid(command) && !nested) {
-                packer::recieve(std::move(command), id);
-            } else {
-                bulks.emplace_back(std::move(command));
-                if (!nested) {
-                    for (auto bulk : bulks) {
-                        packer::recieve(std::move(bulk), id);
-                    }
+//    boost::system::error_code ec;
+
+//    const std::size_t bytes_transferred =
+//        boost::asio::read_until(socket_, boost::asio::dynamic_buffer(data), '\n', ec);
+
+//    if (ec && m_server) {
+//        m_server->disconnect(id);
+
+//    } else {
+
+//        std::string command { data.substr(0, bytes_transferred - 1) }; // 1 is separator size
+//        data.erase(0, bytes_transferred);
+
+//        if (isValid(command) && !m_nested) {
+//            packer::recieve(std::move(command), id);
+//        } else {
+//            bulks.emplace_back(std::move(command));
+//            if (!m_nested) {
+//                for (auto bulk : bulks) {
+//                    packer::recieve(std::move(bulk), id);
+//                }
+//            }
+//        }
+
+//        do_read();
+//    }
+
+        socket_.async_read_some(boost::asio::buffer(data_, max_length), [this](boost::system::error_code ec,
+                                               std::size_t length) {
+            if ((boost::asio::error::eof == ec) || (boost::asio::error::connection_reset == ec)) {
+                if (m_server) {
+                    m_server->disconnect(id);
                 }
             }
-            do_read();
-        }
-    });
+            if (!ec) {
+                std::string command { data_, length };
+                std::cout << "command: " << command << " size:" << length << '\n';
+                if (isValid(command) && !m_nested) {
+                    packer::recieve(std::move(command), id);
+                } else {
+                    bulks.emplace_back(std::move(command));
+                    if (!m_nested) {
+                        for (auto bulk : bulks) {
+                            packer::recieve(std::move(bulk), id);
+                        }
+                    }
+                }
+                do_read();
+            }
+        });
 }
 
-server::server(boost::asio::io_context &io_context, short port)
+server::server(boost::asio::io_context &io_context, short port, size_t bulksize)
     : acceptor_(io_context, tcp::endpoint(tcp::v4(), port))
+    , m_bulksize(bulksize)
 {
     do_accept();
 }
@@ -71,14 +100,14 @@ server::~server()
     m_sessions.clear();
 }
 
-void server::disconnect(size_t id)
+void server::disconnect(const size_t id)
 {
     auto it = std::find_if(pool.begin(), pool.end(),
                    [&id](const Counts &counts) { return counts.id == id; });
     if (it != std::end(pool)) {
         --(it->count);
-        std::cout << "disconnect from server " << id << '\n';
         if (!it->count) {
+            std::cout << "disconnect from server " << id << '\n';
             packer::disconnect(it->id);
             pool.erase(it);
         }
@@ -97,9 +126,8 @@ void server::do_accept()
                       << ", count: " << freeCount->count << '\n';
 
             } else {
-                id = packer::connect(3); // bulkSize
+                id = packer::connect(m_bulksize);
                 pool.emplace_back(Counts { id, 1 });
-
                 std::cout << "connect to new " << id << '\n';
             }
 

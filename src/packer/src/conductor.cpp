@@ -11,9 +11,9 @@ size_t Conductor::connect(const size_t bulkSize)
     return iohandler->connect(bulkSize);
 }
 
-void Conductor::recieve(std::string &&buf, const size_t context)
+void Conductor::recieve(std::string &&buf, const size_t id)
 {
-    iohandler->recieve(std::move(buf), context);
+    iohandler->recieve(std::move(buf), id);
 }
 
 void Conductor::disconnect(const size_t id)

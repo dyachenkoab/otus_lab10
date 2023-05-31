@@ -47,20 +47,20 @@ private:
     std::vector<std::string> bulks;
 
     server *m_server;
-    static std::mutex mutex_;
+//    static std::mutex mutex_;
+//    std::string data;
 
     std::atomic_size_t m_counter { 0 };
-    std::atomic_bool nested { false };
-    boost::asio::streambuf streambuf;
+    std::atomic_bool m_nested { false };
 };
 
 class server
 {
 public:
-    server(boost::asio::io_context &io_context, short port);
+    server(boost::asio::io_context &io_context, short port, size_t bulksize);
     ~server();
 
-    void disconnect(size_t id);
+    void disconnect(const size_t id);
 
 private:
     void do_accept();
@@ -68,21 +68,22 @@ private:
 
     tcp::acceptor acceptor_;
     std::vector<Counts> pool;
-//    std::vector<std::shared_ptr<session>> sessions;
     std::set<std::shared_ptr<session>> m_sessions;
+
+    const size_t m_bulksize;
 };
 
 int main(int argc, char *argv[])
 {
     try {
-        if (argc != 2) {
-            std::cerr << "Usage: async_tcp_echo_server <port>\n";
+        if (argc != 3) {
+            std::cerr << "Usage: async_tcp_echo_server <port> <bulksize>\n";
             return 1;
         }
 
         boost::asio::io_context io_context;
 
-        server server(io_context, std::atoi(argv[1]));
+        server server(io_context, std::atoi(argv[1]), std::atoi(argv[2]));
 
         io_context.run();
     } catch (const std::exception &ex) {

@@ -29,7 +29,7 @@ int main(int, char *[])
         {
             std::ostringstream oss;
             oss << "{";
-            ba::write(sock, ba::buffer(oss.str(), 5));
+            ba::write(sock, ba::buffer(oss.str(), 1));
             std::this_thread::sleep_for(std::chrono::seconds(1));
         }
 
@@ -43,7 +43,7 @@ int main(int, char *[])
         {
             std::ostringstream oss;
             oss << "{";
-            ba::write(sock, ba::buffer(oss.str(), 5));
+            ba::write(sock, ba::buffer(oss.str(), 1));
             std::this_thread::sleep_for(std::chrono::seconds(1));
         }
         for (int i = 0; i < 3; ++i) {
@@ -56,13 +56,13 @@ int main(int, char *[])
         {
             std::ostringstream oss;
             oss << "}";
-            ba::write(sock, ba::buffer(oss.str(), 5));
+            ba::write(sock, ba::buffer(oss.str(), 1));
             std::this_thread::sleep_for(std::chrono::seconds(1));
         }
         {
             std::ostringstream oss;
             oss << "}";
-            ba::write(sock, ba::buffer(oss.str(), 5));
+            ba::write(sock, ba::buffer(oss.str(), 1));
             std::this_thread::sleep_for(std::chrono::seconds(1));
         }
 

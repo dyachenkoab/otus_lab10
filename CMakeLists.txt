@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.16)
 
 set(PROJECT_VERSION 0.1)
 
-project(async VERSION ${PROJECT_VERSION} LANGUAGES CXX)
+project(async_server VERSION ${PROJECT_VERSION} LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -11,124 +11,23 @@ find_package(Boost COMPONENTS system REQUIRED)
 find_package(Threads REQUIRED)
 include_directories(${Boost_INCLUDE_DIR})
 
-add_library(${PROJECT_NAME} SHARED)
-target_sources(${PROJECT_NAME}
-    PRIVATE
-    src/observer.h
-    src/observer.cpp
-    src/iprocessor.h
-    src/iprocessor.cpp
-    src/commandprocessor.h
-    src/commandprocessor.cpp
-    src/printers.h
-    src/printers.cpp
-    src/iohandler.h
-    src/iohandler.cpp
-    src/conductor.cpp
-    src/conductor.h
-    src/async.cpp
-)
-
-target_compile_options(${PROJECT_NAME} PRIVATE
-    -Wall
-    -Wextra
-    -pedantic
-    -Werror
-)
-
-
-target_link_libraries(${PROJECT_NAME} PUBLIC Threads::Threads)
-
-target_include_directories(${PROJECT_NAME} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src
-    PUBLIC
-        # where top-level project will look for the library's public headers
-        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-        # where external projects will look for the library's public headers
-        $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
-    )
-
-set(public_header include/async.h)
-set_target_properties(${PROJECT_NAME} PROPERTIES PUBLIC_HEADER "${public_header}")
-
-
+add_subdirectory(src)
 
 #--------------------------------
-add_executable(test main.cpp)
-target_sources(test
-    PRIVATE
-        main.cpp
-)
-target_link_libraries(test PRIVATE async)
-
-
-add_executable(asio_async_server
+add_executable(${PROJECT_NAME}
     src/asio_async_server.cpp
     src/asio_async_server.h
 )
-
-set_target_properties(asio_async_server PROPERTIES
-        CXX_STANDARD 14
-        CXX_STANDARD_REQUIRED ON
-)
-
-target_link_libraries(asio_async_server PUBLIC
+target_link_libraries(${PROJECT_NAME} PUBLIC
         ${Boost_LIBRARIES}
         Threads::Threads
-        async
+        packer
 )
 
 add_executable(asio_client src/asio_client.cpp)
-
-set_target_properties(asio_client PROPERTIES
-        CXX_STANDARD 14
-        CXX_STANDARD_REQUIRED ON
-        )
-
 target_link_libraries(asio_client PUBLIC
         ${Boost_LIBRARIES}
         Threads::Threads
-        )
+)
 #--------------------------------
 
-
-
-include(GNUInstallDirs)
-include(CMakePackageConfigHelpers)
-
-install(TARGETS ${PROJECT_NAME}
-        EXPORT ${PROJECT_NAME}Targets
-        LIBRARY DESTINATION "/usr/lib"
-        PUBLIC_HEADER DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/${PROJECT_NAME}
-        INCLUDES DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}"
-)
-
-
-# generate and install export file
-install(EXPORT "${PROJECT_NAME}Targets"
-    FILE "${PROJECT_NAME}Targets.cmake"
-    NAMESPACE packer::
-    DESTINATION cmake
-)
-
-# generate the version file for the config file
-write_basic_package_version_file(
-    "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}ConfigVersion.cmake"
-    VERSION "${PROJECT_VERSION}"
-    COMPATIBILITY AnyNewerVersion
-)
-# create config file
-configure_package_config_file(${CMAKE_CURRENT_SOURCE_DIR}/Config.cmake.in
-    "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}Config.cmake"
-    INSTALL_DESTINATION cmake
-)
-# install config files
-install(FILES
-    "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}Config.cmake"
-    "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}ConfigVersion.cmake"
-    DESTINATION cmake
-)
-# generate the export targets for the build tree
-export(EXPORT "${PROJECT_NAME}Targets"
-    FILE "${CMAKE_CURRENT_BINARY_DIR}/cmake/${PROJECT_NAME}Targets.cmake"
-    NAMESPACE packer::
-)
